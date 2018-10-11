@@ -20,6 +20,31 @@ module.exports = {
       );
     });
   },
+  UpdateLastSeen: function(data, data1) {
+    return new Promise((resolve, reject) => {
+      schema.update({ email: data }, { $set: { LastSeen: data1 } }, function(
+        err,
+        res
+      ) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(res);
+        }
+      });
+    });
+  },
+  LastSeen: function(data) {
+    return new Promise((resolve, reject) => {
+      schema.find({ email: data }, { LastSeen: 1 }, function(err, res) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(res);
+        }
+      });
+    });
+  },
   UpdateGroupMessage: function(data) {
     return new Promise((resolve, reject) => {
       schema4.update(

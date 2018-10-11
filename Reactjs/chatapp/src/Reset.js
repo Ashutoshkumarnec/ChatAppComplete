@@ -81,7 +81,7 @@ class Reset extends Component {
     }
   };
 
-  ChangePassword = e => {
+  ChangePassword = async e => {
     e.preventDefault();
     if (this.state.password === "") {
       this.setState({ passwordmsg: "Enter ,Password", Confirmmsg: "" });

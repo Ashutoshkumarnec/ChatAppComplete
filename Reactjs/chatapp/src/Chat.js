@@ -61,7 +61,7 @@ class Chat extends Component {
       GroupUser: [],
       GroupClient: false,
       Room: "",
-      GroupNamesIntialised: ""
+      LastSeen: ""
     };
     this.socket.on("Server-Send-Text", function(data) {
       e.setState({ Sevtext: data });
@@ -71,16 +71,19 @@ class Chat extends Component {
     //   alert("Socket id" + ID);
     // });
 
-    this.socket.on("usernames", function(data) {
+    this.socket.on("usernames", function(data, data1, data2) {
       if (e.state.Error !== 1) {
         e.setState({ OnlineUser: data });
       }
+      if (e.state.UserName === data1) {
+        e.setState({ LastSeen: data2 });
+      }
       console.log("All user status", e.state.AllUser);
     });
-    this.socket.on("ForceLogout", function(data) {
+    this.socket.on("ForceLogout", async function(data) {
       alert("Message from Server : " + data);
-      localStorage.removeItem("email");
-      localStorage.removeItem("username");
+      await localStorage.removeItem("email");
+      await localStorage.removeItem("username");
       e.props.history.push("/Login");
     });
     this.socket.on("NewGroupJoined", function(data) {
@@ -114,7 +117,7 @@ class Chat extends Component {
 
           tym = e.AssignTime();
           var allmsg = {
-            Messagefrom: message.Messagefrom,
+            Messagefrom: message.MessageBy,
             Messages: message.Message,
             Time: tym
           };
@@ -295,7 +298,8 @@ class Chat extends Component {
     await this.setState({
       Selecteduser: data,
       GroupClient: true,
-      Room: data
+      Room: data,
+      LastSeen: ""
     });
     // if (data === this.state.MessageUser) {
     //   this.setState({ MessageUser: "", Replied: "" });
@@ -344,10 +348,11 @@ class Chat extends Component {
         });
     }
   };
-  componentDidMount = async () => {
+  async componentDidMount() {
     window.addEventListener("storage", this.StorageChange);
     var username = await localStorage.getItem("email");
-
+    await this.setState({ OwnUsername: username });
+    console.log("LocalStorage", username);
     if (username === null) {
       this.props.history.push("/Login");
     } else {
@@ -448,7 +453,7 @@ class Chat extends Component {
       //   });
       // this.socket.emit("new-user", this.state.UserName);
     }
-  };
+  }
   UpdateUser = () => {
     fetch("http://192.168.100.150:3000/UpdateAllUser", {
       headers: {
@@ -513,7 +518,7 @@ class Chat extends Component {
     await localStorage.removeItem("username");
     this.props.history.push("/Login");
   };
-  Send = async () => {
+  Send = async username => {
     await this.socket.emit("new-user", this.state.OwnUsername);
     // alert("Sending name" + this.state.UserName);
   };
@@ -674,7 +679,12 @@ class Chat extends Component {
       this.setState({ MessageUser: "", Replied: "" });
     }
     if (data !== this.state.UserName) {
-      await this.setState({ UserName: data, AllMsg: [], Selecteduser: data });
+      await this.setState({
+        UserName: data,
+        AllMsg: [],
+        Selecteduser: data,
+        LastSeen: ""
+      });
       fetch("http://192.168.100.150:3000/Find", {
         headers: {
           Accept: "application/json",
@@ -692,7 +702,7 @@ class Chat extends Component {
         .then(resp => {
           if (resp.data !== "No Record") {
             // msg.push(resp.data);
-            console.log("All Message", resp.data.Message[1]);
+            // console.log("All Message", resp.data.Message[1]);
             for (var i = 0; i < resp.data.Message.length; i++) {
               this.state.AllMsg.push(resp.data.Message[i]);
               // console.log("Messages", resp.data.Message[i]);
@@ -702,7 +712,8 @@ class Chat extends Component {
             //   console.log("After all message push", data.Messages)
             // );
             // this.setState({ AllMsg: resp.data.Message });
-            this.setState({ Status: 1 });
+            console.log("Last seen", resp.data1);
+            this.setState({ Status: 1, LastSeen: resp.data1 });
             // this.state.AllMsg.map(data =>
             //   console.log("After state set", data.Messages)
             // );
@@ -1193,20 +1204,27 @@ class Chat extends Component {
             </div>
             <div
               className="content"
-              style={{ backgroundImage: "url(whatsapp.jpg)" }}
+              style={{
+                backgroundImage: "url(whatsapp.jpg)"
+              }}
             >
               {this.state.UserName !== "" ? (
-                <div className="contact-profile">
+                <div className="contact-profile" style={{ height: 60 }}>
                   <div>
                     <img src="users.png" alt />
                   </div>
-                  {this.state.typingstatus === 1 ? (
-                    <p>typing .....</p>
-                  ) : (
-                    <div>
-                      <p>{this.state.UserName}</p>
-                    </div>
-                  )}
+
+                  <div>
+                    <p>
+                      {this.state.UserName}
+                      <br />
+                      {this.state.typingstatus === 1 ? (
+                        <p>typing ...</p>
+                      ) : (
+                        <p style={{ fontSize: 13 }}>{this.state.LastSeen}</p>
+                      )}
+                    </p>
+                  </div>
 
                   <div className="social-media">
                     {/*<i className="fa fa-facebook" aria-hidden="true" />
@@ -1316,6 +1334,15 @@ class Chat extends Component {
                             <img src="users.png" alt />
                             <p>
                               {data.Messages}
+                              {"                      "}
+                              {this.state.GroupClient === true ? (
+                                <p style={{ fontSize: 12, color: "black" }}>
+                                  ~{data.Messagefrom}
+                                </p>
+                              ) : (
+                                ""
+                              )}
+
                               <br />
                               <br />
                               {data.Time}
@@ -1332,6 +1359,7 @@ class Chat extends Component {
                             <img src="users.png" alt />
                             <p>
                               {data.Messages}
+                              <img src="tick.gif" style={{ width: 20 }} />
                               <br />
                               <br />
                               {data.Time}

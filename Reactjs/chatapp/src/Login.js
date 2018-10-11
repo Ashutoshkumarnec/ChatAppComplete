@@ -3,9 +3,6 @@ import io from "socket.io-client/dist/socket.io.js";
 class Login extends Component {
   constructor(props) {
     super(props);
-    this.socket = io("http://192.168.100.150:3000", {
-      jsonp: false
-    });
     this.state = {
       email: "",
       password: "",
@@ -14,8 +11,8 @@ class Login extends Component {
       Confirmmsg: ""
     };
   }
-  componentDidMount() {
-    var email = localStorage.getItem("email");
+  componentDidMount = async () => {
+    var email = await localStorage.getItem("email");
     if (email !== null) {
       this.props.history.push("./App");
     } else {
@@ -38,7 +35,7 @@ class Login extends Component {
           });
       }
     }
-  }
+  };
   setText = e => {
     if (e.target.name === "email") {
       if (e.target.value.length !== 0) {
@@ -63,8 +60,9 @@ class Login extends Component {
     }
   };
 
-  Login = e => {
+  Login = async e => {
     e.preventDefault();
+    var name = "";
     if (this.state.email === "") {
       this.setState({ emailmsg: "Enter , Email", Confirmmsg: "" });
     } else if (this.state.password === "") {
@@ -97,7 +95,7 @@ class Login extends Component {
               "Username",
               resp.data[0].username
             );
-            this.socket.emit("Reload", "Now");
+            // this.socket.emit("Reload", "Now");
             this.props.history.push("./App");
           } else {
             this.setState({ Confirmmsg: resp.data });
