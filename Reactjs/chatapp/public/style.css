@@ -641,8 +641,10 @@
   height: auto;
   min-height: calc(100% - 93px);
   max-height: calc(100% - 93px);
-  overflow-y: scroll;
-  overflow-x: hidden;
+  /* overflow-y: scroll;
+  overflow-x: hidden; */
+  overflow: scroll;
+  scroll-snap-coordinate: bottom;
 }
 @media screen and (max-width: 735px) {
   #frame .content .messages {

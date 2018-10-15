@@ -61,7 +61,9 @@ class Chat extends Component {
       GroupUser: [],
       GroupClient: false,
       Room: "",
-      LastSeen: ""
+      LastSeen: "",
+      IncMsgSeen: false,
+      DevliveredMsg: false
     };
     this.socket.on("Server-Send-Text", function(data) {
       e.setState({ Sevtext: data });
@@ -88,6 +90,15 @@ class Chat extends Component {
     });
     this.socket.on("NewGroupJoined", function(data) {
       e.GroupDetails123();
+    });
+    this.socket.on("MessageSeen", function(data, data2) {
+      if (e.state.UserName === data && data2 === "seen") {
+        // e.SeenMsgUpdate();
+        // alert("New Msg" + data);
+        e.setState({ IncMsgSeen: true, DevliveredMsg: false });
+      } else {
+        e.setState({ IncMsgSeen: false, DevliveredMsg: true });
+      }
     });
     this.socket.on("New-Message", function(data) {
       // e.setState({ NewMsg: data });
@@ -123,6 +134,7 @@ class Chat extends Component {
           };
           e.state.AllMsg.push(allmsg);
           e.setState({ Status: 1, typingstatus: 0 });
+          e.scrollToBottom();
           console.log("Message from :", message.Messagefrom);
         }
       } else {
@@ -140,21 +152,17 @@ class Chat extends Component {
     this.socket.on("Message", async function(message) {
       if (e.state.UserName !== "") {
         if (message.Messagefrom !== e.state.UserName) {
+          e.socket.emit(
+            "MsgSeen",
+            message.Messagefrom,
+            e.state.OwnUsername,
+            "delivered"
+          );
           alert(message.Messagefrom + " : " + message.Message);
+
           await e.AssignMsg(message);
         } else {
           await e.AssignMsg(message);
-          // var d = new Date();
-          // // var dat = d.toDateString();
-          // // var tim = d.toLocaleTimeString();
-          // var hours = d.getHours();
-          // var minutes = d.getMinutes();
-          // var sec = d.getSeconds();
-          // var ampm = hours >= 12 ? "pm" : "am";
-          // hours = hours % 12;
-          // hours = hours ? hours : 12;
-          // minutes = minutes < 10 ? "0" + minutes : minutes;
-          // Seconds = sec < 10 ? "0" + sec : sec;
           tym = e.AssignTime();
           var allmsg = {
             Messagefrom: message.Messagefrom,
@@ -163,24 +171,23 @@ class Chat extends Component {
           };
           e.state.AllMsg.push(allmsg);
           e.setState({ Status: 1, typingstatus: 0 });
+
+          // e.setState({ IncMsgSeen: true });
+          e.scrollToBottom();
+          e.socket.emit(
+            "MsgSeen",
+            message.Messagefrom,
+            e.state.OwnUsername,
+            "seen"
+          );
+          await e.SeenMsgUpdate(message.Messagefrom);
           console.log("Message from :", message.Messagefrom);
         }
       } else {
         await e.AssignMsg(message);
         e.Select(message.Messagefrom);
         e.setState({ GroupClient: false });
-        // msg.push(message);
-        // var d = new Date();
-        // var dat = d.toDateString();
-        // var tim = d.toLocaleTimeString();
         tym = e.AssignTime();
-        // var allmsg = {
-        //   Messagefrom: message.Messagefrom,
-        //   Messages: message.Message,
-        //   Time: tym
-        // };
-        // e.state.AllMsg.push(allmsg);
-        // e.setState({ Status: 1 });
         console.log("Message from :", message.Messagefrom);
       }
     });
@@ -299,7 +306,9 @@ class Chat extends Component {
       Selecteduser: data,
       GroupClient: true,
       Room: data,
-      LastSeen: ""
+      LastSeen: "",
+      IncMsgSeen: false,
+      DevliveredMsg: false
     });
     // if (data === this.state.MessageUser) {
     //   this.setState({ MessageUser: "", Replied: "" });
@@ -339,6 +348,7 @@ class Chat extends Component {
             // );
             // this.setState({ AllMsg: resp.data.Message });
             this.setState({ Status: 1 });
+            this.scrollToBottom();
             // this.state.AllMsg.map(data =>
             //   console.log("After state set", data.Messages)
             // );
@@ -347,6 +357,9 @@ class Chat extends Component {
           }
         });
     }
+  };
+  scrollToBottom = () => {
+    this.messagesEnd.scrollIntoView({ behavior: "instant" });
   };
   async componentDidMount() {
     window.addEventListener("storage", this.StorageChange);
@@ -525,7 +538,29 @@ class Chat extends Component {
   Deni = () => {
     this.socket.emit("Close-typing", this.state.UserName);
   };
-  SendMessage = e => {
+  SeenMsgUpdate = data => {
+    fetch("http://192.168.100.150:3000/ChangeSeenStatus", {
+      headers: {
+        Accept: "application/json",
+        "Content-type": "application/json"
+      },
+      method: "POST",
+      body: JSON.stringify({
+        Username: data,
+        myid: this.state.myid
+      })
+    })
+      .then(response => {
+        return response.json();
+      })
+      .then(resp => {
+        console.log("updated");
+      });
+  };
+  ControlScroll = () => {
+    window.scrollBy(0, 1);
+  };
+  SendMessage = async e => {
     if (this.state.UserName === "") {
       alert("Select User");
     } else {
@@ -544,12 +579,14 @@ class Chat extends Component {
           // var tim = d.toLocaleTimeString();
           sendtym = this.AssignTime();
           // sendtym = d.toLocaleString(d);
+          this.setState({ IncMsgSeen: false, DevliveredMsg: false });
           var allmsg = {
             Messagefrom: this.state.OwnUsername,
             Messages: this.state.text,
             Time: sendtym
           };
           this.state.AllMsg.push(allmsg);
+          // await this.scrollToBottom();
           if (this.state.GroupClient !== true) {
             fetch("http://192.168.100.150:3000/SaveMessages", {
               headers: {
@@ -598,6 +635,7 @@ class Chat extends Component {
                 // msg = null;
                 msg.push(resp.data);
               });
+
             this.socket.emit(
               "NewGroupMessage",
               this.state.text,
@@ -673,7 +711,9 @@ class Chat extends Component {
     this.setState({
       ChangeColor: "black",
       SelectedName: data,
-      GroupClient: false
+      GroupClient: false,
+      IncMsgSeen: false,
+      DevliveredMsg: false
     });
     if (data === this.state.MessageUser) {
       this.setState({ MessageUser: "", Replied: "" });
@@ -685,6 +725,7 @@ class Chat extends Component {
         Selecteduser: data,
         LastSeen: ""
       });
+
       fetch("http://192.168.100.150:3000/Find", {
         headers: {
           Accept: "application/json",
@@ -701,6 +742,7 @@ class Chat extends Component {
         })
         .then(resp => {
           if (resp.data !== "No Record") {
+            window.scrollBy(0, 1);
             // msg.push(resp.data);
             // console.log("All Message", resp.data.Message[1]);
             for (var i = 0; i < resp.data.Message.length; i++) {
@@ -713,7 +755,15 @@ class Chat extends Component {
             // );
             // this.setState({ AllMsg: resp.data.Message });
             console.log("Last seen", resp.data1);
+
             this.setState({ Status: 1, LastSeen: resp.data1 });
+            this.scrollToBottom();
+            this.socket.emit(
+              "MsgSeen",
+              this.state.UserName,
+              this.state.OwnUsername,
+              "seen"
+            );
             // this.state.AllMsg.map(data =>
             //   console.log("After state set", data.Messages)
             // );
@@ -1215,7 +1265,7 @@ class Chat extends Component {
                   </div>
 
                   <div>
-                    <p>
+                    <p style={{ fontSize: 13 }}>
                       {this.state.UserName}
                       <br />
                       {this.state.typingstatus === 1 ? (
@@ -1359,7 +1409,15 @@ class Chat extends Component {
                             <img src="users.png" alt />
                             <p>
                               {data.Messages}
-                              <img src="tick.gif" style={{ width: 20 }} />
+                              {data.Seen === "yes" ? (
+                                <img src="seenmsg.jpg" style={{ width: 25 }} />
+                              ) : this.state.IncMsgSeen === true ? (
+                                <img src="seenmsg.jpg" style={{ width: 25 }} />
+                              ) : this.state.DevliveredMsg === true ? (
+                                <img src="deliveredimg.png" />
+                              ) : (
+                                <img src="tick.gif" style={{ width: 20 }} />
+                              )}
                               <br />
                               <br />
                               {data.Time}
@@ -1371,6 +1429,12 @@ class Chat extends Component {
                         </div>
                       )
                   )}
+                  <div
+                    style={{ float: "left", clear: "both" }}
+                    ref={el => {
+                      this.messagesEnd = el;
+                    }}
+                  />
                   {/*
                   <li className="replies">
                     <img

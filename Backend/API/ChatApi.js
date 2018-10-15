@@ -534,6 +534,38 @@ module.exports = {
       );
     });
   },
+  UpdateMessageSeen1: function(data, data1, data2) {
+    return new Promise((resolve, reject) => {
+      schema1.update(
+        { member2id: data, member1id: data1 },
+        { $set: { "Message.$[elem].Seen": "yes" } },
+        { multi: true, arrayFilters: [{ "elem.Messagefrom": data2 }] },
+        function(err, res) {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(res);
+          }
+        }
+      );
+    });
+  },
+  UpdateMessageSeen: function(data, data1, data2) {
+    return new Promise((resolve, reject) => {
+      schema1.update(
+        { member1id: data, member2id: data1 },
+        { $set: { "Message.$[elem].Seen": "yes" } },
+        { multi: true, arrayFilters: [{ "elem.Messagefrom": data2 }] },
+        function(err, res) {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(res);
+          }
+        }
+      );
+    });
+  },
   FindAllMesg: function(data, data1) {
     return new Promise((resolve, reject) => {
       schema1.find(

@@ -235,6 +235,12 @@ io.on("connection", function(socket) {
   socket.on("unmounting", function(value) {
     console.log("Unmounting value", value);
   });
+  socket.on("MsgSeen", function(user, user1, msg1) {
+    console.log("Username in seen", user);
+    var index_1 = names.indexOf(user);
+    var socketid_1 = ids[index_1];
+    socket.broadcast.to(socketid_1).emit("MessageSeen", user1, msg1);
+  });
   // socket.on("Send Message", function(data) {});
   socket.on("disconnect", async function(data) {
     if (!socket.username) return;

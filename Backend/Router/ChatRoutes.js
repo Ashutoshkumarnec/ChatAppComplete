@@ -259,7 +259,24 @@ router.post("/Forget", async function(req, res) {
     console.log(err);
   }
 });
-
+router.post("/ChangeSeenStatus", async function(req, res) {
+  try {
+    let resultfromapi1 = await userapi.find(req.body);
+    await userapi.UpdateMessageSeen(
+      req.body.myid,
+      resultfromapi1[0]._id,
+      req.body.Username
+    );
+    await userapi.UpdateMessageSeen1(
+      req.body.myid,
+      resultfromapi1[0]._id,
+      req.body.Username
+    );
+    res.send({ data: "Done" });
+  } catch (err) {
+    console.log(err);
+  }
+});
 router.post("/Find", async function(req, res) {
   try {
     console.log("All user ", req.body);
@@ -267,6 +284,16 @@ router.post("/Find", async function(req, res) {
     console.log("Result from api", resultfromapi1[0]._id);
     let lastseen = await userapi.LastSeen(req.body.Username);
     console.log("LastSeen", lastseen[0].LastSeen);
+    await userapi.UpdateMessageSeen(
+      req.body.myid,
+      resultfromapi1[0]._id,
+      req.body.Username
+    );
+    await userapi.UpdateMessageSeen1(
+      req.body.myid,
+      resultfromapi1[0]._id,
+      req.body.Username
+    );
     let findmessages = await userapi.FindAllMesg(
       req.body.myid,
       resultfromapi1[0]._id
